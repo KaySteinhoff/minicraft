@@ -1,7 +1,7 @@
 # Minicraft
 
 This project was created as a training project for myself and as an educational tool for understanding x86 Assembly in combination with WIN32 and OpenGL.
-This has no real use and isn't sponsored, endorced or supported in any other way by Mojang, Microsoft or other companies relating or owning rights to Minecraft.
+This has no real use and isn't sponsored, endorsed or supported in any other way by Mojang, Microsoft or other companies relating or owning rights to Minecraft.
 
 # How to use
 
