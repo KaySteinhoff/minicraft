@@ -2,11 +2,11 @@
 	extern _wglCreateContext@4
 	extern _wglMakeCurrent@8
 	extern _wglDeleteContext@4
-	extern _wglSwapBuffers@8
 	
 	; GDI
 	extern _ChoosePixelFormat@8
 	extern _SetPixelFormat@12
+	extern _SwapBuffers@4
 	
 	; GL
 	extern _glClearColor@12
@@ -14,7 +14,7 @@
 	
 	; WIN32
 	extern _GetDC@4
-
+	
 section .data
 	PFD_DOUBLEBUFFER equ 1
 	PFD_DRAW_TO_WINDOW equ 4
@@ -118,18 +118,95 @@ glasmInitWGL_Exit:
 
 ; @args
 ; Window handle
-; Context handle
 ; 
 ; @return
-; -
-_glasmMakeContextCurrent@8:
+; eax : gl context handle
+_glasmMakeContextCurrent@4:
 	push ebp
 	mov ebp, esp
 	
+	%define hwnd ebp + 8
 	
+	sub esp, 40 ; make room for pfd
+	push dword [hwnd]
+	push dword [hwnd]
+	call _GetDC@4
+	cmp eax, 0
+	je glasmMakeContextCurrent_Exit
+	push eax
+	
+	; Stack:
+	; ...
+	; 40 bytes pfd
+	; dummyHWND
+	; dummyHDC
+	; <----- esp
+	mov [esp+8], word 40
+	mov [esp+10], word 1
+	mov [esp+12], dword (PFD_DOUBLEBUFFER | PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL)
+	mov [esp+16], byte PFD_TYPE_RGBA
+	mov [esp+17], byte 24
+	
+	; This part of the code can be translated to:
+	; SetPixelFormat([esp], ChoosePixelFormat([esp], esp+8), esp+8)
+	mov eax, esp
+	add eax, 8
+	push eax ; push pfd pointer for SetPixelFormat
+	push eax ; push pfd pointer for ChoosePixelFormat
+	push dword [esp + 8] ; push dc handle
+	call _ChoosePixelFormat@8
+	push eax ; push ChoosePixelFormat result
+	push dword [esp + 8] ; push dc handle
+	call _SetPixelFormat@12
+	cmp eax, 0
+	je glasmMakeContextCurrent_ReleaseDC
+	
+	push dword [esp]
+	call _wglCreateContext@4
+	cmp eax, 0
+	je glasmMakeContextCurrent_ReleaseDC
+	push eax
+	
+	; stack
+	; 40 bytes pfd
+	; window handle
+	; dc handle
+	; gl context handle
+	; <----esp
+	
+	push dword [esp] ; push context handle
+	push dword [esp + 8] ; push dc handle
+	call _wglMakeCurrent@8 ; assign gl context to dc
+	cmp eax, 0
+	jne glasmMakeContextCurrent_Exit
+
+glasmMakeContextCurrent_ReleaseDC:
+	push dword [esp + 4]
+	push dword [esp + 12]
+	call _ReleaseDC@8
+	xor eax, eax
+
+glasmMakeContextCurrent_Exit:
+	mov esp, ebp
+	pop ebp
+	ret 4
+
+; @args
+; Device context handle
+; 
+; @return
+; eax : success(non zero on success)
+_glasmSwapBuffers@4:
+	push ebp
+	mov ebp, esp
+	
+	%define context ebp + 8
+	
+	push dword [context]
+	call _SwapBuffers@4
 	
 	mov esp, ebp
 	pop ebp
-	ret 8
+	ret 4
 
 ;%include "src/helpers.asm"
