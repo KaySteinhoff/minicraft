@@ -12,5 +12,5 @@ The resulting Minicraft.exe should be able to run on any modern Windows machine 
 
 # License
 
-This project is released under the GPL v3 license and any usage of this code or the resulting program for any purpose other than personal use(e.g. educational or entertainment) 
+This project is released under the GPL v3 license and any usage of this code or the resulting program for any purpose other than personal use 
 has to credit this repository or in the case of deletion me, Kay Steinhoff, as the creator.

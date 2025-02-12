@@ -259,7 +259,7 @@ glasmPollEvents_MsgLoop:
 	push 0x001
 	push 0
 	push 0
-	push dword [esp + 8]
+	push dword [ebp + 8]
 	push ebx
 	call _PeekMessageA@20
 	cmp eax, 0
@@ -314,31 +314,31 @@ onCreate:
 	mov eax, 0
 	jmp WindowProcRet
 onKeyDown:
+	mov eax, 0
 	cmp [KEYCALLBACKPROC], dword 0
 	je WindowProcRet
 	push dword [lp]
 	push dword [wp]
 	push dword [hwnd]
 	call [KEYCALLBACKPROC]
-	mov eax, 0
 	jmp WindowProcRet
 onMouseMove:
+	mov eax, 0
 	cmp [MOUSECALLBACKPROC], dword 0
 	je WindowProcRet
 	push dword [lp]
 	push dword [wp]
 	push dword [hwnd]
 	call [MOUSECALLBACKPROC]
-	mov eax, 0
 	jmp WindowProcRet
 onResize:
+	mov eax, 0
 	cmp [FRAMEBUFFERRESIZECALLBACKPROC], dword 0
 	je WindowProcRet
 	push dword [lp]
 	push dword [wp]
 	push dword [hwnd]
 	call [FRAMEBUFFERRESIZECALLBACKPROC]
-	mov eax, 0
 	jmp WindowProcRet
 onClose:
 	mov [shouldClose], dword 1

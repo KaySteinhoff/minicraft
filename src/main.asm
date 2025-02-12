@@ -25,6 +25,9 @@ section .data
 	GL_MODELVIEW equ 0x1700
 	
 	GL_TRIANGLES equ 0x0004
+	
+	playerPos dd 0.0, 0.0, -2.0
+	playeRot dd 0.0, 0.0, 0.0
 
 section .bss
 	windowHandle resb 4
@@ -84,6 +87,9 @@ _main:
 	push dword 800
 	call _minicraftRecalculateFrustum@20
 	
+	push dword OnKeyInput
+	call _glasmSetKeyCallback@4
+	
 winloop:
 	push dword [windowHandle]
 	call _glasmShouldWindowClose@4
@@ -91,7 +97,7 @@ winloop:
 	jne deleteGlContext
 	
 	push dword [windowHandle]
-	call _glasmPollEventsWait@4
+	call _glasmPollEvents@4
 	
 	push dword (GL_COLOR_BUFFER_BIT)
 	call _glClear@4
@@ -100,15 +106,15 @@ winloop:
 	call _glMatrixMode@4
 	call _glLoadIdentity@0
 	
-	push dword 0
-	push dword 0
-	push dword 0
+	push dword [playerPos+8]
+	push dword [playerPos+4]
+	push dword [playerPos]
 	call _glTranslatef@12
 	
-	push dword __?float32?__(1.0)
-	push dword [esp]
-	push dword [esp]
-	push dword 0
+	push dword [playeRot+8]
+	push dword [playeRot+4]
+	push dword [playeRot]
+	push dword 180
 	call _glRotatef@16
 	
 	; render loop
@@ -171,7 +177,34 @@ OnKeyInput:
 	%define wp ebp + 12
 	%define lp ebp + 16
 	
+	push eax
+	mov eax, playerPos
 	
+	add eax, 8
+	cmp dword [wp], 'W'
+	je movepos
+	cmp dword [wp], 'S'
+	je moveneg
+	sub eax, 8
+	cmp dword [wp], 'A'
+	je movepos
+	cmp dword [wp], 'D'
+	je moveneg
+
+	; none match
+	jmp OnKeyInput_Exit
+
+movepos:
+	push __?float32?__(0.1)
+	jmp applyForce
+moveneg:
+	push __?float32?__(-0.1)
+applyForce:
+	movd xmm0, dword [eax]
+	addss xmm0, dword [esp]
+	movd dword [eax], xmm0
+	
+OnKeyInput_Exit:
 	mov esp, ebp
 	pop ebp
 	ret 12
