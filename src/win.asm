@@ -42,9 +42,10 @@ section .data
 	
 section .bss
 	FRAMEBUFFERRESIZECALLBACKPROC resb 4
-	KEYCALLBACKPROC resb 4
 	MOUSECALLBACKPROC resb 4
-
+	
+	glasmKeyStates resb 256
+	
 section .text
 ; @args
 ; -
@@ -157,16 +158,29 @@ glasmCreateWindow_Exit:
 	ret 20
 
 ; @args
-; Callback function pointer
+; virtual key code
 ; 
 ; @return
-; eax : Old callback function pointer
-_glasmSetKeyCallback@4:
-	push ebx
-	mov ebx, [esp+8]
-	mov eax, [KEYCALLBACKPROC]
-	mov [KEYCALLBACKPROC], ebx
-	pop ebx
+; eax : key state. 1st bit = pressed? 2nd bit = held?
+_glasmGetKey@4:
+	push ebp
+	mov ebp, esp
+	%define virtKey ebp + 8
+	xor eax, eax
+	
+	cmp dword [virtKey], 0
+	jl glasmGetKey_Exit
+	cmp dword [virtKey], 255
+	jg glasmGetKey_Exit
+	
+	mov eax, glasmKeyStates
+	add eax, dword [virtKey]
+	mov eax, dword [eax]
+	and eax, 0xff
+	
+glasmGetKey_Exit:
+	mov esp, ebp
+	pop ebp
 	ret 4
 
 ; @args
@@ -301,6 +315,8 @@ WindowProc:
 	je onCreate
 	cmp [msg], dword WM_KEYDOWN
 	je onKeyDown
+	cmp [msg], dword WM_KEYUP
+	je onKeyUp
 	cmp [msg], dword WM_MOUSEMOVE
 	je onMouseMove
 	cmp [msg], dword WM_SIZE
@@ -313,14 +329,19 @@ WindowProc:
 onCreate:
 	mov eax, 0
 	jmp WindowProcRet
+onKeyUp:
+	mov eax, glasmKeyStates
+	add eax, dword [wp]
+	mov [eax], byte 0
+	jmp WindowProcRet
 onKeyDown:
 	mov eax, 0
-	cmp [KEYCALLBACKPROC], dword 0
+	mov eax, glasmKeyStates
+	add eax, dword [wp]
+	cmp [eax], byte 2
 	je WindowProcRet
-	push dword [lp]
-	push dword [wp]
-	push dword [hwnd]
-	call [KEYCALLBACKPROC]
+	shl byte [eax], 1
+	or byte [eax], byte 1
 	jmp WindowProcRet
 onMouseMove:
 	mov eax, 0

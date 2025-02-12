@@ -15,6 +15,8 @@
 	extern _glClearColor@16
 	extern _glClear@4
 	
+	extern _ClipCursor@4
+	
 section .data
 	windowName db "TestWindow", 0
 	
@@ -36,6 +38,9 @@ section .bss
 
 section .text
 _main:
+	rdtsc ; read initial timestamp
+	push edx
+	push eax
 	call _glasmInit@0
 	cmp eax, 0
 	je exit
@@ -70,8 +75,8 @@ _main:
 	push dword 0
 	call _glClearColor@16
 	
-	push 800
 	push 600
+	push 800
 	push 0
 	push 0
 	call _glViewport@16
@@ -87,10 +92,17 @@ _main:
 	push dword 800
 	call _minicraftRecalculateFrustum@20
 	
-	push dword OnKeyInput
-	call _glasmSetKeyCallback@4
+	push dword 600
+	push dword 800
+	push dword 0
+	push dword 0
+	push esp
+	call _ClipCursor@4
 	
 winloop:
+	rdtsc ; read timestamp
+	push edx
+	push eax
 	push dword [windowHandle]
 	call _glasmShouldWindowClose@4
 	cmp eax, 0
@@ -106,6 +118,38 @@ winloop:
 	call _glMatrixMode@4
 	call _glLoadIdentity@0
 	
+	; movement input
+	mov ebx, playerPos+8
+	push dword 'W'
+	call _glasmGetKey@4
+	cmp eax, 0
+	jne movepos
+	push dword 'S'
+	call _glasmGetKey@4
+	cmp eax, 0
+	jne moveneg
+	mov ebx, playerPos
+	push dword 'A'
+	call _glasmGetKey@4
+	cmp eax, 0
+	jne movepos
+	push dword 'D'
+	call _glasmGetKey@4
+	cmp eax, 0
+	jne moveneg
+	push dword 0
+	jmp applyForce
+movepos:
+	push __?float32?__(0.01)
+	jmp applyForce
+moveneg:
+	push __?float32?__(-0.01)
+applyForce:
+	movd xmm0, dword [ebx]
+	addss xmm0, dword [esp]
+	movd dword [ebx], xmm0
+	
+	; apply player movement
 	push dword [playerPos+8]
 	push dword [playerPos+4]
 	push dword [playerPos]
@@ -170,44 +214,17 @@ exit:
 	call _ExitProcess@4
 	ret
 
-OnKeyInput:
+onMouseMovement:
 	push ebp
 	mov ebp, esp
-	%define hwnd ebp + 8
-	%define wp ebp + 12
-	%define lp ebp + 16
 	
-	push eax
-	mov eax, playerPos
+	; calculate delta(in %)
 	
-	add eax, 8
-	cmp dword [wp], 'W'
-	je movepos
-	cmp dword [wp], 'S'
-	je moveneg
-	sub eax, 8
-	cmp dword [wp], 'A'
-	je movepos
-	cmp dword [wp], 'D'
-	je moveneg
-
-	; none match
-	jmp OnKeyInput_Exit
-
-movepos:
-	push __?float32?__(0.1)
-	jmp applyForce
-moveneg:
-	push __?float32?__(-0.1)
-applyForce:
-	movd xmm0, dword [eax]
-	addss xmm0, dword [esp]
-	movd dword [eax], xmm0
+	; apply delta as player rotation
 	
-OnKeyInput_Exit:
 	mov esp, ebp
 	pop ebp
-	ret 12
+	ret 16
 
 ; @args
 ; width [signed int]
