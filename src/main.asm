@@ -101,8 +101,9 @@ _main:
 	
 winloop:
 	rdtsc ; read timestamp
-	push edx
-	push eax
+	; replace old time stamp(temporary)
+	mov [esp+4], edx
+	mov [esp], eax
 	push dword [windowHandle]
 	call _glasmShouldWindowClose@4
 	cmp eax, 0
